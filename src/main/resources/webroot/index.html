@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoC Web Server</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1> MicroSpringBoot IoC Framework</h1>
+        <p class="subtitle">Lightweight Java web framework using Reflection &amp; IoC</p>
+
+        <h2>Available Endpoints</h2>
+        <table>
+            <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+            <tr><td>GET</td><td><a href="/">/</a></td><td>Index page</td></tr>
+            <tr><td>GET</td><td><a href="/hello">/hello</a></td><td>Hello World</td></tr>
+            <tr><td>GET</td><td><a href="/greeting?name=World">/greeting?name=World</a></td><td>Greeting with @RequestParam</td></tr>
+            <tr><td>GET</td><td><a href="/greeting/count?name=Ana">/greeting/count?name=Ana</a></td><td>Greeting with counter</td></tr>
+            <tr><td>GET</td><td><a href="/pi">/pi</a></td><td>Pi value</td></tr>
+            <tr><td>GET</td><td><a href="/euler">/euler</a></td><td>Euler's number</td></tr>
+            <tr><td>GET</td><td><a href="/square?num=7">/square?num=7</a></td><td>Square of a number</td></tr>
+        </table>
+
+        <h2>Try the greeting endpoint</h2>
+        <div class="demo">
+            <label>Name: <input type="text" id="nameInput" value="World" /></label>
+            <button onclick="fetchGreeting()">Greet</button>
+            <p id="result" class="result"></p>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
