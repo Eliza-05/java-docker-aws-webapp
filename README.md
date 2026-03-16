@@ -34,49 +34,38 @@ The application is containerized with Docker and deployed on an AWS EC2 instance
 ---
 
 ## 2. Architecture
-```mermaid
-graph TD
-    subgraph Client
-        B["Browser / curl"]
-    end
-
-    subgraph Docker Container
-        subgraph HttpServer
-            A1["ServerSocket\n(port 8080)"]
-            A2["ExecutorService\n(ThreadPool - 10 threads)"]
-            A3["ShutdownHook\n(SIGTERM handler)"]
-        end
-
-        subgraph IoC Engine
-            C1["ComponentScanner\n(Java Reflection)"]
-            C2["Route Registry\nMap&lt;path, handler&gt;"]
-        end
-
-        subgraph Controllers
-            D1["HelloController\n@RestController"]
-            D2["GreetingController\n@RestController"]
-            D3["MathController\n@RestController"]
-        end
-
-        subgraph Static
-            E1["StaticFileService\n(webroot/)"]
-        end
-    end
-
-    B -->|"HTTP Request"| A1
-    A1 -->|"submit()"| A2
-    A2 -->|"handleClient()"| C2
-    C2 -->|"matched route"| D1
-    C2 -->|"matched route"| D2
-    C2 -->|"matched route"| D3
-    C2 -->|"no route matched"| E1
-    D1 -->|"response body"| A1
-    D2 -->|"response body"| A1
-    D3 -->|"response body"| A1
-    E1 -->|"file bytes"| A1
-    A1 -->|"HTTP Response"| B
-    C1 -.->|"registers at startup"| C2
-    A3 -.->|"stops on SIGTERM"| A2
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Docker Container                         │
+│                                                                 │
+│   ┌─────────────┐     ┌──────────────────────────────────────┐  │
+│   │  HttpServer │     │           IoC Engine                 │  │
+│   │             │     │                                      │  │
+│   │ ServerSocket│     │  ComponentScanner                    │  │
+│   │  port 8080  │     │  - Scans classpath at startup        │  │
+│   │             │     │  - Finds @RestController classes     │  │
+│   │ ExecutorSvc │     │  - Registers @GetMapping methods     │  │
+│   │ 10 threads  │     │  - Builds route map via Reflection   │  │
+│   │             │     │                                      │  │
+│   │ ShutdownHook│     │  Route Registry                      │  │
+│   │  (SIGTERM)  │     │  Map<path, handler>                  │  │
+│   └──────┬──────┘     └──────────────┬───────────────────────┘  │
+│          │                           │ registers at startup      │
+│          │            ┌──────────────▼───────────────────────┐  │
+│          │            │           Controllers                 │  │
+│          ├───────────►│  HelloController    @RestController   │  │
+│          │            │  GreetingController @RestController   │  │
+│          │            │  MathController     @RestController   │  │
+│          │            └──────────────────────────────────────┘  │
+│          │                                                       │
+│          │            ┌──────────────────────────────────────┐  │
+│          └───────────►│  StaticFileService  (webroot/)        │  │
+│                       └──────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+        ▲                                │
+        │   HTTP Request                 │  HTTP Response
+        └───────────────────────────────┘
+                   Browser / curl
 ```
 
 **How it works:**
@@ -92,103 +81,66 @@ When a termination signal (`SIGTERM`) is received — for example from `docker s
 ---
 
 ## 3. Class Design
-```mermaid
-classDiagram
-    class MicroSpringBoot {
-        +main(String[] args)
-    }
-
-    class HttpServer {
-        -Map getRoutes
-        -ExecutorService threadPool
-        -volatile boolean running
-        -int port
-        +port(int p)
-        +get(String path, Function handler)
-        +start()
-        -handleClient(Socket client)
-        -writeResponse(...)
-    }
-
-    class ComponentScanner {
-        +scanAndRegister()
-        +registerByName(String className)
-        -registerController(Class cls)
-        -resolveArgs(Method method, HttpRequest req)
-        -findControllers()
-    }
-
-    class HttpParser {
-        +parse(BufferedReader in) HttpRequest
-    }
-
-    class HttpRequest {
-        -String method
-        -String path
-        -Map queryParams
-        -Map headers
-        -String body
-        +getParam(String key) String
-    }
-
-    class StaticFileService {
-        +tryServe(String path) StaticResult
-    }
-
-    class MimeTypes {
-        +fromFilename(String filename) String
-    }
-
-    class QueryStringParser {
-        +parse(String query) Map
-    }
-
-    class RestController {
-        <<annotation>>
-    }
-
-    class GetMapping {
-        <<annotation>>
-        +value() String
-    }
-
-    class RequestParam {
-        <<annotation>>
-        +value() String
-        +defaultValue() String
-    }
-
-    class GreetingController {
-        +greeting(String name) String
-        +greetingWithCount(String name) String
-    }
-
-    class HelloController {
-        +index() String
-        +hello() String
-    }
-
-    class MathController {
-        +pi() String
-        +euler() String
-        +square(String num) String
-    }
-
-    MicroSpringBoot --> ComponentScanner
-    MicroSpringBoot --> HttpServer
-    ComponentScanner --> HttpServer
-    ComponentScanner --> RestController
-    ComponentScanner --> GetMapping
-    ComponentScanner --> RequestParam
-    HttpServer --> HttpParser
-    HttpServer --> StaticFileService
-    HttpServer --> MimeTypes
-    HttpParser --> HttpRequest
-    HttpParser --> QueryStringParser
-    GreetingController ..|> RestController
-    HelloController ..|> RestController
-    MathController ..|> RestController
 ```
+┌─────────────────────┐
+│   MicroSpringBoot   │
+│─────────────────────│
+│ +main(args)         │
+└──────────┬──────────┘
+           │ uses
+     ┌─────┴──────┐
+     │            │
+     ▼            ▼
+┌────────────┐  ┌──────────────────────────────────────────────┐
+│ HttpServer │  │              ComponentScanner                │
+│────────────│  │──────────────────────────────────────────────│
+│ -getRoutes │  │ +scanAndRegister()                           │
+│ -threadPool│  │ +registerByName(className)                   │
+│ -running   │  │ -registerController(cls)                     │
+│ -port      │  │ -resolveArgs(method, req)                    │
+│────────────│  │ -findControllers()                           │
+│ +port(p)   │  └──────────────┬───────────────────────────────┘
+│ +get(path) │                 │ reads annotations
+│ +start()   │       ┌─────────┼─────────┐
+│ -handle()  │       ▼         ▼         ▼
+│ -write()   │  ┌─────────┐ ┌──────────┐ ┌─────────────┐
+└─────┬──────┘  │@RestCon-│ │@GetMap-  │ │@RequestParam│
+      │         │troller  │ │ping      │ │             │
+      │         │(class)  │ │(method)  │ │(parameter)  │
+      │         └─────────┘ └──────────┘ └─────────────┘
+      │
+      │ uses                      Controllers (@RestController)
+      ├──────────────────┐       ┌──────────────────────────┐
+      │                  │       │  HelloController          │
+      ▼                  ▼       │  +index()                 │
+┌───────────┐   ┌──────────────┐ │  +hello()                 │
+│HttpParser │   │StaticFile    │ ├──────────────────────────┤
+│───────────│   │Service       │ │  GreetingController       │
+│+parse(in) │   │──────────────│ │  +greeting(name)          │
+└─────┬─────┘   │+tryServe(p)  │ │  +greetingWithCount(name) │
+      │         └──────┬───────┘ ├──────────────────────────┤
+      │                │         │  MathController           │
+      ▼                ▼         │  +pi()                    │
+┌───────────┐   ┌──────────────┐ │  +euler()                 │
+│HttpRequest│   │  MimeTypes   │ │  +square(num)             │
+│───────────│   │──────────────│ └──────────────────────────┘
+│-method    │   │+fromFilename │
+│-path      │   └──────────────┘
+│-params    │
+│-headers   │   ┌──────────────────┐
+│-body      │   │ QueryStringParser│
+│───────────│   │──────────────────│
+│+getParam()│   │ +parse(query)    │
+└───────────┘   └──────────────────┘
+```
+
+**Key design decisions:**
+
+- `HttpServer` is the core of the framework. It owns the thread pool and the route registry, and orchestrates the full request-response cycle.
+- `ComponentScanner` is the IoC engine. It uses Java Reflection to discover controllers and register their methods as route handlers automatically — no manual registration needed.
+- The three annotations (`@RestController`, `@GetMapping`, `@RequestParam`) are the public API of the framework. Any class annotated correctly will be picked up and served automatically.
+- `HttpRequest` is an immutable value object. It is created once per request by `HttpParser` and passed through the handling chain.
+- `StaticFileService` and `MimeTypes` are utility classes with no state, responsible only for serving files from the classpath.
 
 ---
 
