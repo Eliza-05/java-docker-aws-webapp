@@ -430,9 +430,7 @@ mvn test
 
 ## 14. Deployment Demo — Video
 
-<video controls width="720">
-    <source src="images/Video_Despliegues.mp4" type="video/mp4">
-</video>
+[Watch the deployment demo on Google Drive](https://drive.google.com/file/d/1PXUvIl5nvodQ3bxIT6zj_-cahYFBUmzN/view?usp=sharing)
 
 The video shows the complete deployment process locally and on AWS EC2, including endpoint verification, concurrent request handling, and graceful shutdown demonstration.
 
