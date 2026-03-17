@@ -19,6 +19,7 @@ A lightweight IoC web framework built from scratch in Java, featuring annotation
 11. [Concurrency](#11-concurrency)
 12. [Graceful Shutdown](#12-graceful-shutdown)
 13. [Tests](#13-tests)
+14. [Deployment Demo — Video](#14-deployment-demo--video)
 
 ---
 
@@ -76,7 +77,7 @@ Once running, `HttpServer` accepts incoming connections on port 8080. Instead of
 
 Each worker thread parses the HTTP request, looks up the matching route handler, invokes the controller method via reflection, and writes the HTTP response back to the client. If no route matches, `StaticFileService` attempts to serve a static file from `webroot/`.
 
-When a termination signal (`SIGTERM`) is received — for example from `docker stop` — the JVM activates the registered `ShutdownHook`. This hook stops the accept loop, calls `threadPool.shutdown()`, and waits up to 5 seconds for in-flight requests to finish before the process exits.
+When a termination signal (`SIGTERM`) is received for example from `docker stop` — the JVM activates the registered `ShutdownHook`. This hook stops the accept loop, calls `threadPool.shutdown()`, and waits up to 5 seconds for in-flight requests to finish before the process exits.
 
 ---
 
@@ -137,7 +138,7 @@ When a termination signal (`SIGTERM`) is received — for example from `docker s
 **Key design decisions:**
 
 - `HttpServer` is the core of the framework. It owns the thread pool and the route registry, and orchestrates the full request-response cycle.
-- `ComponentScanner` is the IoC engine. It uses Java Reflection to discover controllers and register their methods as route handlers automatically — no manual registration needed.
+- `ComponentScanner` is the IoC engine. It uses Java Reflection to discover controllers and register their methods as route handlers automatically no manual registration needed.
 - The three annotations (`@RestController`, `@GetMapping`, `@RequestParam`) are the public API of the framework. Any class annotated correctly will be picked up and served automatically.
 - `HttpRequest` is an immutable value object. It is created once per request by `HttpParser` and passed through the handling chain.
 - `StaticFileService` and `MimeTypes` are utility classes with no state, responsible only for serving files from the classpath.
@@ -337,11 +338,11 @@ Add an inbound rule: Custom TCP, port 42000, source 0.0.0.0/0.
 
 | Method | URL | Description |
 |--------|-----|-------------|
-| GET | `http://ec2-3-236-14-121.compute-1.amazonaws.com:42000/hello` | Returns a hello message |
-| GET | `http://ec2-3-236-14-121.compute-1.amazonaws.com:42000/greeting?name=Eliza` | Returns a personalized greeting |
-| GET | `http://ec2-3-236-14-121.compute-1.amazonaws.com:42000/pi` | Returns the value of Pi |
-| GET | `http://ec2-3-236-14-121.compute-1.amazonaws.com:42000/euler` | Returns Euler's number |
-| GET | `http://ec2-3-236-14-121.compute-1.amazonaws.com:42000/square?num=5` | Returns the square of a number |
+| GET | `http://ec2-3-238-240-131.compute-1.amazonaws.com:42000/hello` | Returns a hello message |
+| GET | `http://ec2-3-238-240-131.compute-1.amazonaws.com:42000/greeting?name=Eliza` | Returns a personalized greeting |
+| GET | `http://ec2-3-238-240-131.compute-1.amazonaws.com:42000/pi` | Returns the value of Pi |
+| GET | `http://ec2-3-238-240-131.compute-1.amazonaws.com:42000/euler` | Returns Euler's number |
+| GET | `http://ec2-3-238-240-131.compute-1.amazonaws.com:42000/square?num=5` | Returns the square of a number |
 
 ---
 
@@ -427,4 +428,19 @@ mvn test
 
 ---
 
-*Eliza — TDSE, ECI 2026*
+## 14. Deployment Demo — Video
+
+<video controls width="720">
+    <source src="images/Video_Despliegues.mp4" type="video/mp4">
+</video>
+
+The video shows the complete deployment process locally and on AWS EC2, including endpoint verification, concurrent request handling, and graceful shutdown demonstration.
+
+---
+
+## Author
+
+**Elizabeth Correa Suarez**
+
+---
+
